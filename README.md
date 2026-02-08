@@ -4,7 +4,7 @@ This lab teaches you how to design and build AI applications using the Model Con
 
 ## Step by Step Instructions
 
-The step by step instructions for this lab can be found in the [MCP and AI Gateway guide](https://microsoft.github.io/TechWorkshop-L300-MCP-AI-Gateway).
+The step by step instructions for this lab can be found in the [MCP and AI Gateway guide](https://isaru66.github.io/TechWorkshop-L300-MCP-AI-Gateway).
 
 ## Contributing
 

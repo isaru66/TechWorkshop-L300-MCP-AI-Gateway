@@ -20,7 +20,7 @@ This lab has exercises on:
 * Secure and govern AI endpoints
 * Resource cleanup
 
-The lab is available as GitHub pages [here](https://microsoft.github.io/TechWorkshop-L300-MCP-AI-Gateway/).
+The lab is available as GitHub pages [here](https://isaru66.github.io/TechWorkshop-L300-MCP-AI-Gateway/).
 
 ## Prerequisites
 
