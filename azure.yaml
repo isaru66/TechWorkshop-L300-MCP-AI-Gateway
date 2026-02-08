@@ -1,0 +1,6 @@
+# Application name
+name: techworkshop-mcp-ai-gateway
+metadata:
+  template: techworkshop-mcp-ai-gateway-v1
+infra:
+  provider: bicep
