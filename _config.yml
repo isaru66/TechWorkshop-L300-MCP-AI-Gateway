@@ -6,7 +6,7 @@ theme: just-the-docs
 
 aux_links:
   "TechWorkshop L300: MCP and AI Gateway": 
-    - "https://github.com/microsoft/TechWorkshop-L300-MCP-AI-Gateway"
+    - "https://github.com/isaru66/TechWorkshop-L300-MCP-AI-Gateway"
 callouts_level: quiet # or loud
 callouts:
   highlight:
