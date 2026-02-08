@@ -1,0 +1,25 @@
+title: MCP and AI Gateway
+description: This lab teaches you how to design and build AI applications using the Model Context Protocol (MCP) and Azure AI Gateway. You will learn how to create MCP servers that connect AI models to external tools and data sources, configure Azure API Management as an AI Gateway to manage and secure AI API traffic, and build end-to-end solutions that leverage MCP for tool integration and AI Gateway for centralized AI endpoint management, monitoring, and governance.
+theme: just-the-docs
+
+# url: https://microsoft.github.io/TechWorkshop-L300-MCP-AI-Gateway/
+
+aux_links:
+  "TechWorkshop L300: MCP and AI Gateway": 
+    - "https://github.com/microsoft/TechWorkshop-L300-MCP-AI-Gateway"
+callouts_level: quiet # or loud
+callouts:
+  highlight:
+    color: yellow
+  important:
+    title: Important
+    color: blue
+  new:
+    title: New
+    color: green
+  note:
+    title: Note 
+    color: purple
+  warning:
+    title: Warning
+    color: red

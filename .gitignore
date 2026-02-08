@@ -1,0 +1,59 @@
+.scan_*/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs & editors
+
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.venv/
+venv/
+ENV/
+.Python
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+*.log
+
+# Test & Coverage
+coverage/
+*.cover
+.nyc_output/
+*.lcov
+
+# Build output
+dist/
+build/
+out/
+
+# Misc
+*.swp
+*.swo
+
+# Secret files
+.env
+.env.*
+
+# Azure/ADO
+.azure-pipelines.yml
+*.azuredevops
+
+# Github
+.github/
+parameters.json
+.azure
