@@ -18,11 +18,10 @@ param publisherName string = 'n/a'
 var storageAccountName = '${abbrs.storageStorageAccounts}${uniqueString(resourceGroup().id)}'
 var aiFoundryName = '${abbrs.azureFoundryResource}${uniqueString(resourceGroup().id)}'
 var aiProjectName = '${abbrs.azureFoundryProject}${uniqueString(resourceGroup().id)}'
-var webAppName = '${abbrs.webSitesAppService}${uniqueString(resourceGroup().id)}'
-var appServicePlanName = '${abbrs.webServerFarms}${uniqueString(resourceGroup().id)}'
+var containerAppName = '${abbrs.appContainerApps}${uniqueString(resourceGroup().id)}'
+var containerAppEnvName = '${abbrs.appManagedEnvironments}${uniqueString(resourceGroup().id)}'
 var logAnalyticsName = '${abbrs.operationalInsightsWorkspaces}${uniqueString(resourceGroup().id)}'
 var appInsightsName = '${abbrs.insightsComponents}${uniqueString(resourceGroup().id)}'
-var webAppSku = 'S1'
 var registryName = '${abbrs.containerRegistryRegistries}${uniqueString(resourceGroup().id)}'
 var registrySku = 'Standard'
 var apimServiceName = '${abbrs.apiManagementService}${uniqueString(resourceGroup().id)}'
@@ -438,53 +437,74 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-12-01' =
   tags: tags
 }
 
-@description('Creates an Azure App Service Plan.')
-resource appServicePlan 'Microsoft.Web/serverFarms@2022-09-01' = {
-  name: appServicePlanName
+@description('Creates an Azure Container Apps Environment.')
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2023-05-01' = {
+  name: containerAppEnvName
   location: location
-  kind: 'linux'
   properties: {
-    reserved: true
-  }
-  sku: {
-    name: webAppSku
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.properties.customerId
+        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+      }
+    }
   }
   tags: tags
 }
 
-@description('Creates an Azure App Service for Zava.')
-resource appServiceApp 'Microsoft.Web/sites@2022-09-01' = {
-  name: webAppName
+@description('Creates an Azure Container App')
+resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: containerAppName
   location: location
   properties: {
-    serverFarmId: appServicePlan.id
-    httpsOnly: true
-    clientAffinityEnabled: false
-    siteConfig: {
-      linuxFxVersion: 'DOCKER|${containerRegistry.name}.azurecr.io/${uniqueString(resourceGroup().id)}/techworkshopl300/zava'
-      http20Enabled: true
-      minTlsVersion: '1.2'
-      appCommandLine: ''
-      appSettings: [{
-          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
-          value: 'false'
-        }
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+        transport: 'auto'
+        allowInsecure: false
+      }
+      registries: [
         {
-          name: 'DOCKER_REGISTRY_SERVER_URL'
-          value: 'https://${containerRegistry.name}${environment().suffixes.acrLoginServer}'
+          server: '${containerRegistry.name}${environment().suffixes.acrLoginServer}'
+          username: containerRegistry.name
+          passwordSecretRef: 'registry-password'
         }
+      ]
+      secrets: [
         {
-          name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-          value: containerRegistry.name
-        }
-        {
-          name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
+          name: 'registry-password'
           value: containerRegistry.listCredentials().passwords[0].value
         }
         {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          name: 'appinsights-key'
           value: appInsights.properties.InstrumentationKey
-      }]
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'mcp-ai-gateway-app'
+          image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+          resources: {
+            cpu: json('0.5')
+            memory: '1Gi'
+          }
+          env: [
+            {
+              name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+              secretRef: 'appinsights-key'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 5
+      }
     }
   }
   tags: tags
@@ -701,8 +721,8 @@ module finOpsDashboardModule 'dashboard.bicep' = {
 
 output storageAccountName string = storageAccount.name
 output container_registry_name string = containerRegistry.name
-output application_name string = appServiceApp.name
-output application_url string = appServiceApp.properties.hostNames[0]
+output application_name string = containerApp.name
+output application_url string = containerApp.properties.configuration.ingress.fqdn
 output apim_service_name string = apimService.name
 output apim_gateway_url string = apimService.properties.gatewayUrl
 output pricingDCREndpoint string = pricingDCR.properties.endpoints.logsIngestion
