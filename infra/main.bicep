@@ -201,6 +201,193 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
   tags: tags
 }
 
+@description('Creates custom pricing table in Log Analytics for OpenAI model pricing data.')
+resource pricingTable 'Microsoft.OperationalInsights/workspaces/tables@2023-09-01' = {
+  parent: logAnalyticsWorkspace
+  name: 'PRICING_CL'
+  properties: {
+    totalRetentionInDays: 4383
+    plan: 'Analytics'
+    schema: {
+      name: 'PRICING_CL'
+      description: 'OpenAI models pricing table for ${logAnalyticsWorkspace.properties.customerId}'
+      columns: [
+        {
+          name: 'TimeGenerated'
+          type: 'datetime'
+        }
+        {
+          name: 'Model'
+          type: 'string'
+        }
+        {
+          name: 'InputTokensPrice'
+          type: 'real'
+        }
+        {
+          name: 'OutputTokensPrice'
+          type: 'real'
+        }
+      ]
+    }
+    retentionInDays: 730
+  }
+  tags: tags
+}
+
+@description('Creates Data Collection Rule for pricing data ingestion.')
+resource pricingDCR 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
+  name: 'dcr-pricing-${uniqueString(resourceGroup().id)}'
+  location: location
+  kind: 'Direct'
+  properties: {
+    streamDeclarations: {
+      'Custom-Json-${pricingTable.name}': {
+        columns: [
+          {
+            name: 'TimeGenerated'
+            type: 'datetime'
+          }
+          {
+            name: 'Model'
+            type: 'string'
+          }
+          {
+            name: 'InputTokensPrice'
+            type: 'real'
+          }
+          {
+            name: 'OutputTokensPrice'
+            type: 'real'
+          }
+        ]
+      }
+    }
+    destinations: {
+      logAnalytics: [
+        {
+          workspaceResourceId: logAnalyticsWorkspace.id
+          name: logAnalyticsWorkspace.name
+        }
+      ]
+    }
+    dataFlows: [
+      {
+        streams: [
+          'Custom-Json-${pricingTable.name}'
+        ]
+        destinations: [
+          logAnalyticsWorkspace.name
+        ]
+        transformKql: 'source'
+        outputStream: 'Custom-${pricingTable.name}'
+      }
+    ]
+  }
+  tags: tags
+}
+
+@description('Assigns Monitoring Metrics Publisher role to deployer for pricing DCR.')
+var monitoringMetricsPublisherRoleDefinitionID = resourceId('Microsoft.Authorization/roleDefinitions', '3913510d-42f4-4e42-8a64-420c390055eb')
+resource pricingDCRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: pricingDCR
+  name: guid(subscription().id, resourceGroup().id, pricingDCR.name, monitoringMetricsPublisherRoleDefinitionID)
+  properties: {
+    roleDefinitionId: monitoringMetricsPublisherRoleDefinitionID
+    principalId: userPrincipalId
+    principalType: 'User'
+  }
+}
+
+@description('Creates custom subscription quota table in Log Analytics for APIM subscription cost quotas.')
+resource subscriptionQuotaTable 'Microsoft.OperationalInsights/workspaces/tables@2023-09-01' = {
+  parent: logAnalyticsWorkspace
+  name: 'SUBSCRIPTION_QUOTA_CL'
+  properties: {
+    totalRetentionInDays: 4383
+    plan: 'Analytics'
+    schema: {
+      name: 'SUBSCRIPTION_QUOTA_CL'
+      description: 'APIM subscriptions quota table for ${logAnalyticsWorkspace.properties.customerId}'
+      columns: [
+        {
+          name: 'TimeGenerated'
+          type: 'datetime'
+        }
+        {
+          name: 'Subscription'
+          type: 'string'
+        }
+        {
+          name: 'CostQuota'
+          type: 'real'
+        }
+      ]
+    }
+    retentionInDays: 730
+  }
+  tags: tags
+}
+
+@description('Creates Data Collection Rule for subscription quota data ingestion.')
+resource subscriptionQuotaDCR 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
+  name: 'dcr-quota-${uniqueString(resourceGroup().id)}'
+  location: location
+  kind: 'Direct'
+  properties: {
+    streamDeclarations: {
+      'Custom-Json-${subscriptionQuotaTable.name}': {
+        columns: [
+          {
+            name: 'TimeGenerated'
+            type: 'datetime'
+          }
+          {
+            name: 'Subscription'
+            type: 'string'
+          }
+          {
+            name: 'CostQuota'
+            type: 'real'
+          }
+        ]
+      }
+    }
+    destinations: {
+      logAnalytics: [
+        {
+          workspaceResourceId: logAnalyticsWorkspace.id
+          name: logAnalyticsWorkspace.name
+        }
+      ]
+    }
+    dataFlows: [
+      {
+        streams: [
+          'Custom-Json-${subscriptionQuotaTable.name}'
+        ]
+        destinations: [
+          logAnalyticsWorkspace.name
+        ]
+        transformKql: 'source'
+        outputStream: 'Custom-${subscriptionQuotaTable.name}'
+      }
+    ]
+  }
+  tags: tags
+}
+
+@description('Assigns Monitoring Metrics Publisher role to deployer for subscription quota DCR.')
+resource subscriptionQuotaDCRRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: subscriptionQuotaDCR
+  name: guid(subscription().id, resourceGroup().id, subscriptionQuotaDCR.name, monitoringMetricsPublisherRoleDefinitionID)
+  properties: {
+    roleDefinitionId: monitoringMetricsPublisherRoleDefinitionID
+    principalId: userPrincipalId
+    principalType: 'User'
+  }
+}
+
 @description('Creates an Azure Container Registry.')
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-12-01' = {
   name: registryName
@@ -385,4 +572,11 @@ output application_name string = appServiceApp.name
 output application_url string = appServiceApp.properties.hostNames[0]
 output apim_service_name string = apimService.name
 output apim_gateway_url string = apimService.properties.gatewayUrl
+output pricingDCREndpoint string = pricingDCR.properties.endpoints.logsIngestion
+output pricingDCRImmutableId string = pricingDCR.properties.immutableId
+output pricingDCRStream string = pricingDCR.properties.dataFlows[0].streams[0]
+output subscriptionQuotaDCREndpoint string = subscriptionQuotaDCR.properties.endpoints.logsIngestion
+output subscriptionQuotaDCRImmutableId string = subscriptionQuotaDCR.properties.immutableId
+output subscriptionQuotaDCRStream string = subscriptionQuotaDCR.properties.dataFlows[0].streams[0]
+output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.properties.customerId
 
