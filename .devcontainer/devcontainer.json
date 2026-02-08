@@ -17,7 +17,8 @@
 				"ms-azuretools.vscode-azure-mcp-server",
 				"ms-azuretools.vscode-azureresourcegroups",
 				"ms-python.python",
-				"humao.rest-client"
+				"humao.rest-client",
+				"ms-toolsai.jupyter"
 			]
 		}
 	}
