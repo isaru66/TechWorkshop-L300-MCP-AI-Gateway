@@ -1,5 +1,5 @@
 ---
-title: 'Exercise 01: Deploy and configure resources'
+title: 'Exercise 02: Deploy and configure resources'
 layout: default
 nav_order: 2
 has_children: true
