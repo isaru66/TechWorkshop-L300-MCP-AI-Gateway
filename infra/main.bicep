@@ -721,6 +721,8 @@ module finOpsDashboardModule 'dashboard.bicep' = {
 
 output storageAccountName string = storageAccount.name
 output container_registry_name string = containerRegistry.name
+output container_app_environment_name string = containerAppEnvironment.name
+output container_app_environment_id string = containerAppEnvironment.id
 output application_name string = containerApp.name
 output application_url string = containerApp.properties.configuration.ingress.fqdn
 output apim_service_name string = apimService.name
