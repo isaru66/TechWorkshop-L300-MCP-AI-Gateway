@@ -1,0 +1,119 @@
+### MCP Streamable HTTP Tests
+### Base URL
+@baseUrl = http://localhost:8000
+
+### 1. Initialize MCP Session
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {},
+        "clientInfo": {
+            "name": "test-client",
+            "version": "1.0.0"
+        }
+    }
+}
+
+### 2. List Available Tools
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+}
+
+### 3. Call get_cities tool - Thailand
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+        "name": "get_cities",
+        "arguments": {
+            "country": "thailand"
+        }
+    }
+}
+
+### 4. Call get_cities tool - USA
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+        "name": "get_cities",
+        "arguments": {
+            "country": "usa"
+        }
+    }
+}
+
+### 5. Call get_weather tool - Bangkok
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+        "name": "get_weather",
+        "arguments": {
+            "city": "Bangkok"
+        }
+    }
+}
+
+### 6. Call get_weather tool - Thai name (กรุงเทพมหานคร)
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+        "name": "get_weather",
+        "arguments": {
+            "city": "กรุงเทพมหานคร"
+        }
+    }
+}
+
+### 7. Call get_weather tool - New York
+POST {{baseUrl}}/mcp
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "tools/call",
+    "params": {
+        "name": "get_weather",
+        "arguments": {
+            "city": "New York"
+        }
+    }
+}
