@@ -1,0 +1,388 @@
+@description('Object ID of the user/principal to grant Cosmos DB data access')
+// Get your principal object ID via: az ad signed-in-user show --query id -o tsv
+param userPrincipalId string = deployer().objectId
+
+// Load abbreviations from JSON file
+var abbrs = loadJsonContent('./abbreviations.json')
+
+@minLength(1)
+@description('Primary location for all resources.')
+param location string = resourceGroup().location
+
+@minLength(1)
+param publisherEmail string = 'noreply@microsoft.com'
+
+@minLength(1)
+param publisherName string = 'n/a'
+
+var storageAccountName = '${abbrs.storageStorageAccounts}${uniqueString(resourceGroup().id)}'
+var aiFoundryName = '${abbrs.azureFoundryResource}${uniqueString(resourceGroup().id)}'
+var aiProjectName = '${abbrs.azureFoundryProject}${uniqueString(resourceGroup().id)}'
+var webAppName = '${abbrs.webSitesAppService}${uniqueString(resourceGroup().id)}'
+var appServicePlanName = '${abbrs.webServerFarms}${uniqueString(resourceGroup().id)}'
+var logAnalyticsName = '${abbrs.operationalInsightsWorkspaces}${uniqueString(resourceGroup().id)}'
+var appInsightsName = '${abbrs.insightsComponents}${uniqueString(resourceGroup().id)}'
+var webAppSku = 'S1'
+var registryName = '${abbrs.containerRegistryRegistries}${uniqueString(resourceGroup().id)}'
+var registrySku = 'Standard'
+var apimServiceName = '${abbrs.apiManagementService}${uniqueString(resourceGroup().id)}'
+
+var tags = {
+  Project: 'Tech Workshop L300 - MCP and AI Gateway'
+  Environment: 'Lab'
+  Owner: deployer().userPrincipalName
+  SecurityControl: 'ignore'
+  CostControl: 'ignore'
+}
+
+// Ensure the current resource group has the required tag via a subscription-scoped module
+module updateRgTags 'updateRgTags.bicep' = {
+  name: 'updateRgTags'
+  scope: subscription()
+  params: {
+    rgName: resourceGroup().name
+    rgLocation: resourceGroup().location
+    newTags: union(resourceGroup().tags ?? {}, tags )
+  }
+}
+
+var locations = [
+  {
+    locationName: location
+    failoverPriority: 0
+    isZoneRedundant: false
+  }
+]
+
+@description('Creates an Azure Storage account.')
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    accessTier: 'Hot'
+  }
+  tags: tags
+}
+
+resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
+  name: aiFoundryName
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  sku: {
+    name: 'S0'
+  }
+  kind: 'AIServices'
+  properties: {
+    // required to work in Microsoft Foundry
+    allowProjectManagement: true 
+
+    // Defines developer API endpoint subdomain
+    customSubDomainName: aiFoundryName
+
+    disableLocalAuth: false
+    publicNetworkAccess: 'Enabled'
+  }
+  tags: tags
+}
+
+/*
+  Developer APIs are exposed via a project, which groups in- and outputs that relate to one use case, including files.
+  Its advisable to create one project right away, so development teams can directly get started.
+  Projects may be granted individual RBAC permissions and identities on top of what account provides.
+*/ 
+resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-10-01-preview' = {
+  name: aiProjectName
+  parent: aiFoundry
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {}
+  tags: tags
+}
+
+@description('Creates GPT-5.2-chat deployment in AI Foundry.')
+resource gpt52ChatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: aiFoundry
+  name: 'gpt-5.2-chat'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 250
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5.2-chat'
+      version: '2025-12-11'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    currentCapacity: 250
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+}
+
+@description('Creates GPT-5-mini deployment in AI Foundry.')
+resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: aiFoundry
+  name: 'gpt-5-mini'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 212
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-5-mini'
+      version: '2025-08-07'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    currentCapacity: 212
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  dependsOn: [
+    gpt52ChatDeployment
+  ]
+}
+
+@description('Creates text-embedding-3-large deployment in AI Foundry.')
+resource textEmbedding3LargeDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: aiFoundry
+  name: 'text-embedding-3-large'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 250
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'text-embedding-3-large'
+      version: '1'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    currentCapacity: 250
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  dependsOn: [
+    gpt5MiniDeployment
+  ]
+}
+
+@description('Creates an Azure Log Analytics workspace.')
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 90
+    workspaceCapping: {
+      dailyQuotaGb: 1
+    }
+  }
+  tags: tags
+}
+
+@description('Creates an Azure Application Insights resource.')
+resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+  }
+  tags: tags
+}
+
+@description('Creates an Azure Container Registry.')
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-12-01' = {
+  name: registryName
+  location: location
+  sku: {
+    name: registrySku
+  }
+  properties: {
+    adminUserEnabled: true
+  }
+  tags: tags
+}
+
+@description('Creates an Azure App Service Plan.')
+resource appServicePlan 'Microsoft.Web/serverFarms@2022-09-01' = {
+  name: appServicePlanName
+  location: location
+  kind: 'linux'
+  properties: {
+    reserved: true
+  }
+  sku: {
+    name: webAppSku
+  }
+  tags: tags
+}
+
+@description('Creates an Azure App Service for Zava.')
+resource appServiceApp 'Microsoft.Web/sites@2022-09-01' = {
+  name: webAppName
+  location: location
+  properties: {
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    clientAffinityEnabled: false
+    siteConfig: {
+      linuxFxVersion: 'DOCKER|${containerRegistry.name}.azurecr.io/${uniqueString(resourceGroup().id)}/techworkshopl300/zava'
+      http20Enabled: true
+      minTlsVersion: '1.2'
+      appCommandLine: ''
+      appSettings: [{
+          name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'
+          value: 'false'
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_URL'
+          value: 'https://${containerRegistry.name}${environment().suffixes.acrLoginServer}'
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_USERNAME'
+          value: containerRegistry.name
+        }
+        {
+          name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
+          value: containerRegistry.listCredentials().passwords[0].value
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: appInsights.properties.InstrumentationKey
+      }]
+    }
+  }
+  tags: tags
+}
+
+@description('Creates an Azure API Management service.')
+resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
+  name: apimServiceName
+  location: location
+  sku: {
+    name: 'BasicV2'
+    capacity: 1
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    publisherEmail: publisherEmail
+    publisherName: publisherName
+    notificationSenderEmail: 'apimgmt-noreply@mail.windowsazure.com'
+    hostnameConfigurations: [
+      {
+        type: 'Proxy'
+        hostName: '${apimServiceName}.azure-api.net'
+        negotiateClientCertificate: false
+        defaultSslBinding: true
+        certificateSource: 'BuiltIn'
+      }
+    ]
+    customProperties: {
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls10': 'False'
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls11': 'False'
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls10': 'False'
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Tls11': 'False'
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Backend.Protocols.Ssl30': 'False'
+      'Microsoft.WindowsAzure.ApiManagement.Gateway.Protocols.Server.Http2': 'False'
+    }
+    virtualNetworkType: 'None'
+    natGatewayState: 'Enabled'
+    apiVersionConstraint: {}
+    publicNetworkAccess: 'Enabled'
+    legacyPortalStatus: 'Disabled'
+    developerPortalStatus: 'Disabled'
+    releaseChannel: 'Default'
+  }
+  tags: tags
+}
+
+@description('Creates Azure Monitor logger for API Management.')
+resource apimAzureMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
+  parent: apimService
+  name: 'azuremonitor'
+  properties: {
+    loggerType: 'azureMonitor'
+    isBuffered: true
+  }
+}
+
+@description('Creates diagnostic settings for API Management with Azure Monitor.')
+resource apimDiagnostics 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
+  parent: apimService
+  name: 'azuremonitor'
+  properties: {
+    logClientIp: true
+    loggerId: apimAzureMonitorLogger.id
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100
+    }
+    frontend: {
+      request: {
+        dataMasking: {
+          queryParams: [
+            {
+              value: '*'
+              mode: 'Hide'
+            }
+          ]
+        }
+      }
+    }
+    backend: {
+      request: {
+        dataMasking: {
+          queryParams: [
+            {
+              value: '*'
+              mode: 'Hide'
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+@description('Associates Azure Monitor logger with diagnostics.')
+resource apimDiagnosticsLogger 'Microsoft.ApiManagement/service/diagnostics/loggers@2018-01-01' = {
+  parent: apimDiagnostics
+  name: 'azuremonitor'
+}
+
+@description('Creates a product for the weather assistant application.')
+resource weatherAssistantProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
+  name: 'app-weather-assistant'
+  parent: apimService
+  properties: {
+    displayName: 'APP-Weather-Assistant'
+    description: 'Offering OpenAI services for the weather assistant platform.'
+    subscriptionRequired: true
+    approvalRequired: true
+    subscriptionsLimit: 200
+    state: 'published'
+    terms: 'By subscribing to this product, you agree to the terms and conditions.'
+  }
+}
+
+
+output storageAccountName string = storageAccount.name
+output container_registry_name string = containerRegistry.name
+output application_name string = appServiceApp.name
+output application_url string = appServiceApp.properties.hostNames[0]
+output apim_service_name string = apimService.name
+output apim_gateway_url string = apimService.properties.gatewayUrl
+
