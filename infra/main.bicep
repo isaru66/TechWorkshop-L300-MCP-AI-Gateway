@@ -26,6 +26,7 @@ var webAppSku = 'S1'
 var registryName = '${abbrs.containerRegistryRegistries}${uniqueString(resourceGroup().id)}'
 var registrySku = 'Standard'
 var apimServiceName = '${abbrs.apiManagementService}${uniqueString(resourceGroup().id)}'
+var resourceSuffix = uniqueString(resourceGroup().id)
 
 var tags = {
   Project: 'Tech Workshop L300 - MCP and AI Gateway'
@@ -199,6 +200,42 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
     WorkspaceResourceId: logAnalyticsWorkspace.id
   }
   tags: tags
+}
+
+resource alertsWorkbook 'Microsoft.Insights/workbooks@2022-04-01' = {
+  name: guid(resourceGroup().id, resourceSuffix, 'alertsWorkbook')
+  location: resourceGroup().location
+  kind: 'shared'
+  properties: {
+    displayName: 'Alerts Workbook'
+    serializedData: loadTextContent('workbooks/alerts.json')
+    sourceId: logAnalyticsWorkspace.id
+    category: 'workbook'
+  }
+}
+
+resource azureOpenAIInsightsWorkbook 'Microsoft.Insights/workbooks@2022-04-01' = {
+  name: guid(resourceGroup().id, resourceSuffix, 'azureOpenAIInsights')
+  location: resourceGroup().location
+  kind: 'shared'
+  properties: {
+    displayName: 'Azure OpenAI Insights'
+    serializedData: string(loadJsonContent('workbooks/azure-openai-insights.json'))
+    sourceId: logAnalyticsWorkspace.id
+    category: 'workbook'
+  }
+}
+
+resource openAIUsageWorkbook 'Microsoft.Insights/workbooks@2022-04-01' = {
+  name: guid(resourceGroup().id, resourceSuffix, 'costAnalysis')
+  location: resourceGroup().location
+  kind: 'shared'
+  properties: {
+    displayName: 'Cost Analysis'
+    serializedData: replace(loadTextContent('workbooks/cost-analysis.json'), '{workspace-id}', logAnalyticsWorkspace.id)
+    sourceId: logAnalyticsWorkspace.id
+    category: 'workbook'
+  }
 }
 
 @description('Creates custom pricing table in Log Analytics for OpenAI model pricing data.')
@@ -551,7 +588,7 @@ resource apimDiagnosticsLogger 'Microsoft.ApiManagement/service/diagnostics/logg
 }
 
 @description('Creates a product for the weather assistant application.')
-resource weatherAssistantProduct 'Microsoft.ApiManagement/service/products@2022-08-01' = {
+resource weatherAssistantProduct 'Microsoft.ApiManagement/service/products@2024-06-01-preview' = {
   name: 'app-weather-assistant'
   parent: apimService
   properties: {
@@ -562,6 +599,102 @@ resource weatherAssistantProduct 'Microsoft.ApiManagement/service/products@2022-
     subscriptionsLimit: 200
     state: 'published'
     terms: 'By subscribing to this product, you agree to the terms and conditions.'
+  }
+}
+
+@description('Creates Platinum product with TPM: 2000, Token Quota: 1000000/Monthly, Cost Quota: 15')
+resource platinumProduct 'Microsoft.ApiManagement/service/products@2024-06-01-preview' = {
+  name: 'platinum'
+  parent: apimService
+  properties: {
+    displayName: 'Platinum Product'
+    description: 'Premium tier with 2000 TPM, 1000000 tokens per month, and $15 cost quota'
+    subscriptionRequired: true
+    approvalRequired: false
+    state: 'published'
+  }
+}
+
+@description('Creates Gold product with TPM: 1000, Token Quota: 1000000/Monthly, Cost Quota: 10')
+resource goldProduct 'Microsoft.ApiManagement/service/products@2024-06-01-preview' = {
+  name: 'gold'
+  parent: apimService
+  properties: {
+    displayName: 'Gold Product'
+    description: 'Gold tier with 1000 TPM, 1000000 tokens per month, and $10 cost quota'
+    subscriptionRequired: true
+    approvalRequired: false
+    state: 'published'
+  }
+}
+
+@description('Creates Silver product with TPM: 500, Token Quota: 1000000/Monthly, Cost Quota: 5')
+resource silverProduct 'Microsoft.ApiManagement/service/products@2024-06-01-preview' = {
+  name: 'silver'
+  parent: apimService
+  properties: {
+    displayName: 'Silver Product'
+    description: 'Silver tier with 500 TPM, 1000000 tokens per month, and $5 cost quota'
+    subscriptionRequired: true
+    approvalRequired: false
+    state: 'published'
+  }
+}
+
+@description('Creates Subscription 1 for Platinum product')
+resource subscription1 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = {
+  name: 'subscription1'
+  parent: apimService
+  properties: {
+    displayName: 'Subscription 1'
+    scope: '/products/${platinumProduct.name}'
+    state: 'active'
+  }
+}
+
+@description('Creates Subscription 2 for Gold product')
+resource subscription2 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = {
+  name: 'subscription2'
+  parent: apimService
+  properties: {
+    displayName: 'Subscription 2'
+    scope: '/products/${goldProduct.name}'
+    state: 'active'
+  }
+}
+
+@description('Creates Subscription 3 for Silver product')
+resource subscription3 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = {
+  name: 'subscription3'
+  parent: apimService
+  properties: {
+    displayName: 'Subscription 3'
+    scope: '/products/${silverProduct.name}'
+    state: 'active'
+  }
+}
+
+@description('Creates Subscription 4 for Silver product')
+resource subscription4 'Microsoft.ApiManagement/service/subscriptions@2024-06-01-preview' = {
+  name: 'subscription4'
+  parent: apimService
+  properties: {
+    displayName: 'Subscription 4'
+    scope: '/products/${silverProduct.name}'
+    state: 'active'
+  }
+}
+
+module finOpsDashboardModule 'dashboard.bicep' = {
+  name: 'finOpsDashboardModule'
+  params: {
+    resourceSuffix: resourceSuffix
+    workspaceName: logAnalyticsWorkspace.name
+    workspaceId: logAnalyticsWorkspace.id
+    workbookCostAnalysisId: openAIUsageWorkbook.id
+    workbookAzureOpenAIInsightsId: azureOpenAIInsightsWorkbook.id
+    appInsightsId: appInsights.id
+    appInsightsName: appInsights.name
   }
 }
 
