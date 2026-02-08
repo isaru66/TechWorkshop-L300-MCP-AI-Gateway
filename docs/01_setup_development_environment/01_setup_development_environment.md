@@ -5,7 +5,7 @@ nav_order: 2
 has_children: true
 ---
 
-# Exercise 00: Setup development environment
+# Exercise 01: Setup development environment
 
 ## Scenario
 
@@ -23,4 +23,4 @@ After you complete this exercise, you will be able to:
 
 ## Duration
 
-* **Estimated Time:** 30 minutes
+* **Estimated Time:** 10 minutes
