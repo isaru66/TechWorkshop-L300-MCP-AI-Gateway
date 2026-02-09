@@ -12,3 +12,6 @@ azure-monitor-ingestion>=1.0.4
 
 # OpenAI SDK for Azure
 openai>=1.12.0
+
+# Environment variable management
+python-dotenv>=1.0.0

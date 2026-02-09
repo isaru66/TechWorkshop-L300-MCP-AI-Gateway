@@ -1,0 +1,106 @@
+### Azure OpenAI via APIM - FinOps Framework Testing
+### Based on finops-framework.ipynb cell 17
+
+### Variables loaded from .env file
+@apimGatewayUrl = {{$dotenv APIM_GATEWAY_URL}}
+@inferenceApiPath = {{$dotenv INFERENCE_API_PATH}}
+@apiVersion = {{$dotenv API_VERSION}}
+
+# APIM Subscription Keys (4 subscriptions from apim_subscriptions_config)
+@subscription1Key = {{$dotenv SUBSCRIPTION1_KEY}}
+@subscription2Key = {{$dotenv SUBSCRIPTION2_KEY}}
+@subscription3Key = {{$dotenv SUBSCRIPTION3_KEY}}
+@subscription4Key = {{$dotenv SUBSCRIPTION4_KEY}}
+
+# Random subscription selector - uncomment ONE line to choose which subscription to use
+# Or run the requests below that each use a different subscription
+@randomSubscriptionKey = {{subscription1Key}}
+# @randomSubscriptionKey = {{subscription2Key}}
+# @randomSubscriptionKey = {{subscription3Key}}
+# @randomSubscriptionKey = {{subscription4Key}}
+
+# Model names from models_config
+@modelGpt52Chat = gpt-5.2-chat
+@modelGpt5Mini = gpt-5-mini
+
+### Quick Test - Uses randomSubscriptionKey (change above to test different subscriptions)
+POST {{apimGatewayUrl}}/{{inferenceApiPath}}/chat/completions?api-version={{apiVersion}}
+api-key: {{randomSubscriptionKey}}
+Content-Type: application/json
+
+{
+  "model": "{{modelGpt52Chat}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hello! Can you help me test this API?"
+    }
+  ],
+  "max_completion_tokens": 100
+}
+
+### Random Test Suite - Run these in any order to simulate random subscription usage
+
+### Test with Subscription 1 (Platinum - TPM: 2000, Quota: $15)
+POST {{apimGatewayUrl}}/{{inferenceApiPath}}/chat/completions?api-version={{apiVersion}}
+api-key: {{subscription1Key}}
+Content-Type: application/json
+
+{
+  "model": "{{modelGpt52Chat}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Can you tell me the time, please?"
+    }
+  ],
+  "max_completion_tokens": 150
+}
+
+### Test with Subscription 2 (Gold - TPM: 1000, Quota: $10)
+POST {{apimGatewayUrl}}/{{inferenceApiPath}}/chat/completions?api-version={{apiVersion}}
+api-key: {{subscription2Key}}
+Content-Type: application/json
+
+{
+  "model": "{{modelGpt52Chat}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is the capital of France?"
+    }
+  ],
+  "max_completion_tokens": 100
+}
+
+### Test with Subscription 3 (Silver - TPM: 500, Quota: $5)
+POST {{apimGatewayUrl}}/{{inferenceApiPath}}/chat/completions?api-version={{apiVersion}}
+api-key: {{subscription3Key}}
+Content-Type: application/json
+
+{
+  "model": "{{modelGpt52Chat}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Explain quantum computing in simple terms."
+    }
+  ],
+  "max_completion_tokens": 200
+}
+
+### Test with Subscription 4 (Silver - TPM: 500, Quota: $5)
+POST {{apimGatewayUrl}}/{{inferenceApiPath}}/chat/completions?api-version={{apiVersion}}
+api-key: {{subscription4Key}}
+Content-Type: application/json
+
+{
+  "model": "{{modelGpt52Chat}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Write a haiku about coding."
+    }
+  ],
+  "max_completion_tokens": 100
+}
