@@ -1,5 +1,6 @@
 {
     "analysisServicesServers": "as",
+    "apiCenterServices": "apic-",
     "azureFoundryResource": "aif-",
     "azureFoundryProject": "proj-",
     "apiManagementService": "apim-",

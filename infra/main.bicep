@@ -25,6 +25,7 @@ var appInsightsName = '${abbrs.insightsComponents}${uniqueString(resourceGroup()
 var registryName = '${abbrs.containerRegistryRegistries}${uniqueString(resourceGroup().id)}'
 var registrySku = 'Standard'
 var apimServiceName = '${abbrs.apiManagementService}${uniqueString(resourceGroup().id)}'
+var apiCenterName = '${abbrs.apiCenterServices}${uniqueString(resourceGroup().id)}'
 var resourceSuffix = uniqueString(resourceGroup().id)
 
 var tags = {
@@ -705,6 +706,156 @@ resource subscription4 'Microsoft.ApiManagement/service/subscriptions@2024-06-01
   }
 }
 
+@description('Creates an Azure API Center service.')
+resource apiCenter 'Microsoft.ApiCenter/services@2024-06-01-preview' = {
+  name: apiCenterName
+  location: location
+  sku: {
+    name: 'Free'
+  }
+  properties: {}
+  tags: tags
+}
+
+@description('Creates default workspace in API Center.')
+resource apiCenterDefaultWorkspace 'Microsoft.ApiCenter/services/workspaces@2024-06-01-preview' = {
+  parent: apiCenter
+  name: 'default'
+  properties: {
+    title: 'Default workspace'
+    description: 'Default workspace'
+  }
+}
+
+@description('Creates Microsoft docs MCP server API in API Center.')
+resource apiMsdocsMcpServer 'Microsoft.ApiCenter/services/workspaces/apis@2024-06-01-preview' = {
+  parent: apiCenterDefaultWorkspace
+  name: 'msdocs-mcp-server'
+  properties: {
+    title: 'Microsoft docs'
+    summary: 'AI assistant with real-time access to official Microsoft documentation.'
+    description: 'AI assistant with real-time access to official Microsoft documentation.'
+    kind: 'mcp'
+    externalDocumentation: []
+    contacts: []
+    customProperties: {}
+  }
+}
+
+@description('Creates Swagger Petstore API in API Center.')
+resource apiSwaggerPetstore 'Microsoft.ApiCenter/services/workspaces/apis@2024-06-01-preview' = {
+  parent: apiCenterDefaultWorkspace
+  name: 'swagger-petstore'
+  properties: {
+    title: 'Swagger Petstore'
+    summary: 'A sample API that uses a petstore as an example to demonstrate features in the OpenAPI Specification.'
+    description: 'The Swagger Petstore API serves as a sample API to demonstrate the functionality and features of the OpenAPI Specification. This API allows users to interact with a virtual pet store, including managing pet inventory, placing orders, and retrieving details about available pets. It provides various endpoints that simulate real-world scenarios, making it a valuable reference for understanding how to structure and implement API specifications in compliance with OpenAPI standards.'
+    kind: 'rest'
+    termsOfService: {
+      url: 'https://aka.ms/apicenter-samples-api-termsofservice-link'
+    }
+    license: {
+      name: 'MIT'
+      url: 'https://aka.ms/apicenter-samples-api-license-link'
+    }
+    externalDocumentation: [
+      {
+        description: 'API Documentation'
+        url: 'https://aka.ms/apicenter-samples-api-documentation-link'
+      }
+    ]
+    contacts: [
+      {
+        name: 'John Doe'
+        email: 'john.doe@example.com'
+      }
+    ]
+    customProperties: {}
+  }
+}
+
+@description('Creates default MCP environment in API Center.')
+resource apiEnvironmentDefaultMcp 'Microsoft.ApiCenter/services/workspaces/environments@2024-06-01-preview' = {
+  parent: apiCenterDefaultWorkspace
+  name: 'default-mcp-env'
+  properties: {
+    title: 'Default MCP Environment'
+    kind: 'development'
+    description: 'Auto-generated environment for Microsoft docs'
+    customProperties: {}
+  }
+}
+
+@description('Creates original version for Microsoft docs MCP server.')
+resource apiVersionMsdocsMcpOriginal 'Microsoft.ApiCenter/services/workspaces/apis/versions@2024-06-01-preview' = {
+  parent: apiMsdocsMcpServer
+  name: 'original'
+  properties: {
+    title: 'Original'
+    lifecycleStage: 'production'
+  }
+}
+
+@description('Creates version 1.0.0 for Swagger Petstore API.')
+resource apiVersionSwaggerPetstore100 'Microsoft.ApiCenter/services/workspaces/apis/versions@2024-06-01-preview' = {
+  parent: apiSwaggerPetstore
+  name: '1-0-0'
+  properties: {
+    title: '1.0.0'
+    lifecycleStage: 'testing'
+  }
+}
+
+@description('Creates SSE definition for Microsoft docs MCP server.')
+resource apiDefinitionMsdocsMcpSse 'Microsoft.ApiCenter/services/workspaces/apis/versions/definitions@2024-06-01-preview' = {
+  parent: apiVersionMsdocsMcpOriginal
+  name: 'default-sse'
+  properties: {
+    title: 'SSE Definition for Microsoft docs'
+    description: 'Auto-generated definition for Microsoft docs'
+  }
+}
+
+@description('Creates Streamable definition for Microsoft docs MCP server.')
+resource apiDefinitionMsdocsMcpStreamable 'Microsoft.ApiCenter/services/workspaces/apis/versions/definitions@2024-06-01-preview' = {
+  parent: apiVersionMsdocsMcpOriginal
+  name: 'default-streamable'
+  properties: {
+    title: 'Streamable Definition for Microsoft docs'
+    description: 'Auto-generated definition for Microsoft docs'
+  }
+}
+
+@description('Creates default definition for Swagger Petstore.')
+resource apiDefinitionSwaggerPetstoreDefault 'Microsoft.ApiCenter/services/workspaces/apis/versions/definitions@2024-06-01-preview' = {
+  parent: apiVersionSwaggerPetstore100
+  name: 'default'
+  properties: {
+    title: 'Default'
+  }
+}
+
+@description('Creates deployment to default MCP environment.')
+resource apiDeploymentMsdocsMcp 'Microsoft.ApiCenter/services/workspaces/apis/deployments@2024-06-01-preview' = {
+  parent: apiMsdocsMcpServer
+  name: 'default-deployment'
+  properties: {
+    title: 'Deployment to default-mcp-env'
+    environmentId: '/workspaces/default/environments/default-mcp-env'
+    definitionId: '/workspaces/default/apis/msdocs-mcp-server/versions/original/definitions/default-sse'
+    server: {
+      runtimeUri: [
+        'https://learn.microsoft.com/api/mcp'
+      ]
+    }
+    customProperties: {}
+  }
+  dependsOn: [
+    apiDefinitionMsdocsMcpSse
+    apiEnvironmentDefaultMcp
+  ]
+}
+
 module finOpsDashboardModule 'dashboard.bicep' = {
   name: 'finOpsDashboardModule'
   params: {
@@ -727,6 +878,7 @@ output application_name string = containerApp.name
 output application_url string = containerApp.properties.configuration.ingress.fqdn
 output apim_service_name string = apimService.name
 output apim_gateway_url string = apimService.properties.gatewayUrl
+output api_center_name string = apiCenter.name
 output pricingDCREndpoint string = pricingDCR.properties.endpoints.logsIngestion
 output pricingDCRImmutableId string = pricingDCR.properties.immutableId
 output pricingDCRStream string = pricingDCR.properties.dataFlows[0].streams[0]
