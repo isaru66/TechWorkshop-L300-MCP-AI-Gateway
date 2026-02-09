@@ -4,10 +4,17 @@ import random
 import httpx
 import uvicorn
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.middleware.cors import CORSMiddleware
 
 # Initialize FastMCP server
-mcp = FastMCP("weather", stateless_http=True)
+mcp = FastMCP(
+    "weather",
+    stateless_http=True,
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False,
+    )
+)
 
 # Thai cities mapping (English <-> Thai)
 THAI_CITIES = {
