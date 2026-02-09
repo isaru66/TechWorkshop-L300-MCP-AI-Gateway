@@ -554,6 +554,49 @@ resource apimService 'Microsoft.ApiManagement/service@2024-06-01-preview' = {
   tags: tags
 }
 
+@description('Creates diagnostic settings for API Management to send logs to Log Analytics.')
+resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: apimService
+  name: 'apim-diagnostics'
+  properties: {
+    workspaceId: logAnalyticsWorkspace.id
+    logs: [
+      {
+        category: 'GatewayLogs'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'WebSocketConnectionLogs'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'DeveloperPortalAuditLogs'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+      {
+        category: 'GatewayLlmLogs'
+        enabled: true
+        retentionPolicy: {
+          enabled: false
+          days: 0
+        }
+      }
+    ]
+  }
+}
+
 @description('Creates Azure Monitor logger for API Management.')
 resource apimAzureMonitorLogger 'Microsoft.ApiManagement/service/loggers@2024-06-01-preview' = {
   parent: apimService
