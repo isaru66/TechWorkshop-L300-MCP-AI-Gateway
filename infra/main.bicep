@@ -108,25 +108,25 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-10-01-pre
   tags: tags
 }
 
-@description('Creates GPT-5.2-chat deployment in AI Foundry.')
-resource gpt52ChatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
-  parent: aiFoundry
-  name: 'gpt-5.2-chat'
-  sku: {
-    name: 'GlobalStandard'
-    capacity: 250
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-5.2-chat'
-      version: '2025-12-11'
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    currentCapacity: 250
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
+// @description('Creates GPT-5.2-chat deployment in AI Foundry.')
+// resource gpt52ChatDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+//   parent: aiFoundry
+//   name: 'gpt-5.2-chat'
+//   sku: {
+//     name: 'GlobalStandard'
+//     capacity: 250
+//   }
+//   properties: {
+//     model: {
+//       format: 'OpenAI'
+//       name: 'gpt-5.2-chat'
+//       version: '2025-12-11'
+//     }
+//     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+//     currentCapacity: 250
+//     raiPolicyName: 'Microsoft.DefaultV2'
+//   }
+// }
 
 @description('Creates GPT-5-mini deployment in AI Foundry.')
 resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
