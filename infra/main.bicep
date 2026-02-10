@@ -128,48 +128,48 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-10-01-pre
 //   }
 // }
 
-@description('Creates GPT-5-mini deployment in AI Foundry.')
-resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
-  parent: aiFoundry
-  name: 'gpt-5-mini'
-  sku: {
-    name: 'GlobalStandard'
-    capacity: 212
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-5-mini'
-      version: '2025-08-07'
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    currentCapacity: 212
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
+// @description('Creates GPT-5-mini deployment in AI Foundry.')
+// resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+//   parent: aiFoundry
+//   name: 'gpt-5-mini'
+//   sku: {
+//     name: 'GlobalStandard'
+//     capacity: 212
+//   }
+//   properties: {
+//     model: {
+//       format: 'OpenAI'
+//       name: 'gpt-5-mini'
+//       version: '2025-08-07'
+//     }
+//     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+//     currentCapacity: 212
+//     raiPolicyName: 'Microsoft.DefaultV2'
+//   }
+// }
 
-@description('Creates text-embedding-3-large deployment in AI Foundry.')
-resource textEmbedding3LargeDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
-  parent: aiFoundry
-  name: 'text-embedding-3-large'
-  sku: {
-    name: 'GlobalStandard'
-    capacity: 250
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'text-embedding-3-large'
-      version: '1'
-    }
-    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
-    currentCapacity: 250
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-  dependsOn: [
-    gpt5MiniDeployment
-  ]
-}
+// @description('Creates text-embedding-3-large deployment in AI Foundry.')
+// resource textEmbedding3LargeDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+//   parent: aiFoundry
+//   name: 'text-embedding-3-large'
+//   sku: {
+//     name: 'GlobalStandard'
+//     capacity: 250
+//   }
+//   properties: {
+//     model: {
+//       format: 'OpenAI'
+//       name: 'text-embedding-3-large'
+//       version: '1'
+//     }
+//     versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+//     currentCapacity: 250
+//     raiPolicyName: 'Microsoft.DefaultV2'
+//   }
+//   dependsOn: [
+//     gpt5MiniDeployment
+//   ]
+// }
 
 @description('Creates an Azure Log Analytics workspace.')
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
