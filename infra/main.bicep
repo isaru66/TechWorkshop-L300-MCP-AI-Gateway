@@ -560,6 +560,7 @@ resource apimDiagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-0
   name: 'apim-diagnostics'
   properties: {
     workspaceId: logAnalyticsWorkspace.id
+    logAnalyticsDestinationType: 'Dedicated'
     logs: [
       {
         category: 'GatewayLogs'
