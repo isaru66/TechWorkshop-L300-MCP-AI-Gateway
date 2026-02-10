@@ -146,9 +146,6 @@ resource gpt5MiniDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
     currentCapacity: 212
     raiPolicyName: 'Microsoft.DefaultV2'
   }
-  dependsOn: [
-    gpt52ChatDeployment
-  ]
 }
 
 @description('Creates text-embedding-3-large deployment in AI Foundry.')
