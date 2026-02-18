@@ -1,4 +1,5 @@
 from typing import Any
+import os
 import random
 
 import httpx
@@ -6,6 +7,9 @@ import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 # Initialize FastMCP server
 mcp = FastMCP(
@@ -105,8 +109,28 @@ async def get_weather(city: str) -> str:
     return str(weather_info)
 
 
+async def root(request: Request) -> JSONResponse:
+    return JSONResponse({
+        "server": "MCP Mock Weather Server",
+        "description": "This is a Model Context Protocol (MCP) server using HTTP Streamable transport.",
+        "transport": "HTTP Streamable",
+        "mcp_endpoint": "/mcp",
+        "protocol_version": "2025-03-26",
+        "capabilities": {
+            "tools": {
+                "get_cities": "Get list of cities for a given country (usa, canada, uk, australia, india, portugal, thailand)",
+                "get_weather": "Get mock weather information for a given city (supports English and Thai city names)"
+            }
+        }
+    })
+
+
 # Create ASGI app at module level for uvicorn
 app = mcp.streamable_http_app()
+
+# Add root info route
+app.routes.insert(0, Route("/", endpoint=root))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -118,7 +142,8 @@ app.add_middleware(
 
 
 def main():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 if __name__ == "__main__":
